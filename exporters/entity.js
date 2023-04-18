@@ -57,7 +57,7 @@ export class Entity {
                 });
                 const entity = {
                     "@id": `#${encodeURIComponent(row.eid)}`,
-                    "@type": type,
+                    "@type": "Function",
                     identifier: row.eid,
                     name: row.ename,
                     alsoKnownAs: alsoKnownAs.map((e) => ({ "@id": e["@id"] })),

@@ -42,10 +42,11 @@ export class PubResource {
                     ["processing", "processingNotes"],
                     ["status", "outputStatus"],
                 ];
+                const workType = row.typeofwork || "";
 
                 const pubresource = {
                     "@id": `#${encodeURIComponent(row.pubid)}`,
-                    "@type": ["PublishedResource", row.type, row.typeofwork],
+                    "@type": ["PublishedResource", row.type.replace(/\s/, ""), workType.replace(/\s/, "")],
                     identifier: row.pubid,
                     name: row.title,
                 };

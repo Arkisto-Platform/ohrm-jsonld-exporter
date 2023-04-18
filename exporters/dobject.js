@@ -34,13 +34,14 @@ export class DObject {
                 versions = versions.map((entity) => {
                     return { "@id": encodeURI(entity.dov) };
                 });
-
+                
                 const dobject = {
                     "@id": `#${encodeURIComponent(row.doid)}`,
-                    "@type": ["DigitalObject", row.dotype],
+                    "@type": ["File"],
                     identifier: row.doid,
                     name: row.dotitle,
                     description: row.dodescription,
+                    encodingFormat:  row.dotype,
                     versions,
                 };
                 if (row.arcid) dobject.linkedArchivalResource = { "@id": row.arcid };

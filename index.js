@@ -30,7 +30,19 @@ const argv = yargs(process.argv.slice(2))
         describe: "A path to output the JSON-LD files",
         type: "string",
     })
+    .option("v", {
+        alias: "vocab-crate",
+        describe: "A path to an RO-Crate containing vocabulary terms",
+        type: "string",
+    })
+    .option("n", {
+        alias: "namespace",
+        describe: "A URL for the vocabulary terms (they will be added using a # reference)",
+        type: "string",
+    })
     .help().argv;
+
+
 
 main();
 async function main() {
@@ -53,10 +65,23 @@ async function main() {
 
     if (argv.outputPath) await ensureDir(argv.outputPath);
 
-    const crate = new ROCrate();
+    const crate = new ROCrate({array:true, link: true});
+    const vocabCrate = new ROCrate({array:true, link: true});
+    const ns = argv.namespace;
+    const vocabCratePath = argv.vocabCrate;
+    const extractVocab = ns && vocabCratePath;
 
+
+
+
+   
+        
+ 
     // the name property is where those entities will be attached to the root dataset
     //   so for example: ArchivalResources will be at crate.rootDataset.archivalResource
+    
+    // TODO: This might be better done with a generic hasPart relationship -- avoid a lot of extra props
+    
     const resources = [
         { obj: ArcResource, name: "archivalResources" },
         { obj: DObject, name: "digitalObjects" },
@@ -76,26 +101,53 @@ async function main() {
         let resource = new obj();
         let entities = await resource.export({ models });
         entities.forEach((entity) => crate.addEntity(entity));
-        crate.rootDataset[name] = entities.map((e) => ({ "@id": e["@id"] }));
+        crate.rootDataset.name = entities.map((e) => ({ "@id": e["@id"] }));
     }
 
     // iterate over all entities of type Relationship and link the entity
     //   back to the related entities
-    for (let entity of crate.entities()) {
-        if (entity["@type"].includes("Relationship")) {
-            try {
-                let srcEntity = crate.getEntity(entity.source["@id"]);
-                crate.addValues(srcEntity, "target", { "@id": entity["@id"] }, false);
-            } catch (error) {
-                console.log(`Can't find source: ${entity.source["@id"]}`);
-            }
 
-            try {
-                let tgtEntity = crate.getEntity(entity.target["@id"]);
-                crate.addValues(tgtEntity, "source", { "@id": entity["@id"] }, false);
-            } catch (error) {
-                console.log(`Can't find target: ${entity.target["@id"]}`);
+    // PT: Added more informative names
+    for (let entity of crate.entities()) {
+        // Check that all the Properties and Classes needed are included
+        if (extractVocab) {
+            for (let t of entity["@type"]) {
+                const resolvedTerm = vocabCrate.resolveTerm(t);
+                if (t === "Subsequent") {
+                    console.log(entity);diereally;
+                }
+                if (!resolvedTerm) {
+                    const newClass =  {
+                        "@id": `${ns}#${t}`,
+                        "@type": "rdfs:Class",
+                        "name": t,
+                        "rdfs:label": t,
+                        "rdfs:comment": "..."      
+                    }
+                    vocabCrate.addEntity(newClass);
+                    vocabCrate.addValues(crate.rootDataset, "mentions", newClass);
+                    //console.log("Resolved:", t, resolvedTerm);
+                }
             }
+        }
+        if (entity["@type"].includes("Relationship")) {
+            var relationshipName = "";
+            try {
+                let srcEntity = crate.getEntity(entity.source[0]["@id"]);
+                crate.addValues(srcEntity, "sourceOf", entity, false);
+                relationshipName += `${srcEntity.name} -> `;
+            } catch (error) {
+                console.log(`Can't find source: ${entity.source[0]["@id"]}`);
+            }
+            relationshipName += `${entity["@type"]} -> `
+            try {
+                let tgtEntity = crate.getEntity(entity.target[0]["@id"]);
+                crate.addValues(tgtEntity, "targetOf", entity, false);
+                relationshipName += `${tgtEntity.name}`
+            } catch (error) {
+                console.log(`Can't find target: ${entity.target[0]["@id"]}`);
+            }
+            entity.name = relationshipName;
         }
     }
 
@@ -104,6 +156,10 @@ async function main() {
         await writeJSON(path.join(argv.outputPath, "ro-crate-metadata.json"), crate, { spaces: 4 });
     } else {
         console.log(JSON.stringify(crate.toJSON(), null, 2));
+    }
+    if (extractVocab) {
+        await ensureDir(argv.vocabCrate);
+        await writeJSON(path.join(argv.vocabCrate, "ro-crate-metadata.json"), vocabCrate, { spaces: 4 });
     }
 
     await sequelize.close();
