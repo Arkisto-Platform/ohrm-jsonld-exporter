@@ -46,10 +46,13 @@ export class PubResource {
 
                 const pubresource = {
                     "@id": `#${encodeURIComponent(row.pubid)}`,
-                    "@type": ["PublishedResource", row.type.replace(/\s/, ""), workType.replace(/\s/, "")],
+                    "@type": ["PublishedResource", row.type.replace(/\s/g, "")],
                     identifier: row.pubid,
                     name: row.title,
                 };
+                if (workType) {
+                    pubresource["@type"].push(workType.replace(/\s/, ""))
+                }
                 // if (row.typeofwork) {
                 //     pubresource.typeofwork = { "@id": `#${encodeURIComponent(row.typeofwork)}` };
                 // }

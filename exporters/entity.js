@@ -57,12 +57,17 @@ export class Entity {
                 });
                 const entity = {
                     "@id": `#${encodeURIComponent(row.eid)}`,
-                    "@type": "Function",
+                    "@type": type,
                     identifier: row.eid,
                     name: row.ename,
                     alsoKnownAs: alsoKnownAs.map((e) => ({ "@id": e["@id"] })),
                     relatedEvents: entityEvent.map((e) => ({ "@id": e["@id"] })),
                 };
+
+                //console.log("TYPES", type);
+
+                // TODO -- Add vocab classes for ENTITY
+                
                 mapEntityProperties(row, entity, properties);
 
                 extractEntity({
