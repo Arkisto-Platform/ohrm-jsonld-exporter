@@ -36,7 +36,6 @@ that volume. Repeat these steps to load more OHRM datasets into this database in
 
 -   To work with the DHRA OHRM:
 
--
 -   start the database server if required: `docker compose up -d`
 -   in one terminal connect to the DB container and then the database:
     -   `docker exec -it ohrm-jsonld-exporter-db-1 /bin/bash`
