@@ -50,8 +50,9 @@ const argv = yargs(process.argv.slice(2))
 main();
 async function main() {
 
-    function addSuperclasses(className) {
-        const c = vocabCrate.getEntity(className["@id"]);
+    function addSuperclasses(classs) {
+        console.log(classs)
+        const c = vocabCrate.getEntity(classs["@id"]);
         c.name = c["rdfs:label"];
         if (c["rdfs:subClassOf"] && isArray(c["rdfs:subClassOf"])) {
             c["rdfs:subClassOf"] = c["rdfs:subClassOf"].map((s) => {
@@ -87,6 +88,7 @@ async function main() {
 
     const crate = new ROCrate({ array: true, link: true });
     const vocabCrate = new ROCrate({ array: true, link: true });
+    vocabCrate.addContext({"RepositoryObject": "http://pcdm.org/2016/04/18/models#Object"})
     const schemaOrgCrate = new ROCrate({ array: true, link: true });
 
 
@@ -94,12 +96,27 @@ async function main() {
     const vocabCratePath = argv.vocabCrate;
     const extractVocab = ns && vocabCratePath;
     if (extractVocab) {
-        // Graba  copy of this and put it in schema.json: https://schema.org/version/latest/schemaorg-current-http.jsonld
+        // Grab a  copy of this and put it in schema.json: https://schema.org/version/latest/schemaorg-current-http.jsonld
         const schemaJson = await fsExtraPkg.readJSON("schema.json");
         for (let entity of schemaJson["@graph"]) {
             entity["@id"] = entity["@id"].replace(/^schema:/, "http://schema.org/")
             schemaOrgCrate.addEntity(clone(entity))
         }
+        // Grab a copy of this and put in ro-crate-terms.json https://raw.githubusercontent.com/describo/type-definitions/master/schema.org-extensions/ro-crate-additional-schema.jsonld
+        const rocJson = await fsExtraPkg.readJSON("ro-crate-terms.json");
+        for (let entity of rocJson["@graph"]) {
+            try {
+                entity["@id"] = schemaOrgCrate.resolveTerm(entity["@id"]).replace("#object","#Object")
+                entity["@id"] = entity["@id"].replace("http://pcdm.org/models", "http://pcdm.org/2016/04/18/models")
+
+                vocabCrate.addEntity(clone(entity))
+                schemaOrgCrate.addEntity(clone(entity))
+                  
+            } catch (error) {
+                console.log("Can't add term",  entity['@id'])
+            }
+        }
+    
     }
 
 
@@ -165,8 +182,7 @@ async function main() {
                     extraContext[t] = newClass["@id"];
 
                     vocabCrate.addValues(crate.rootDataset, "mentions", newClass);
-                    // TODO: Add to @context
-                    //console.log("Resolved:", t, resolvedTerm);
+                  
                 }
             }
             for (let p of Object.keys(entity)) {
@@ -185,6 +201,7 @@ async function main() {
                     }
                     vocabCrate.addEntity(newProp);
                     extraContext[p] = newProp["@id"];
+
                     vocabCrate.addValues(crate.rootDataset, "mentions", newProp);
                     resolvedTerm = newProp["@id"];
                     // TODO: Add to @context
@@ -199,11 +216,16 @@ async function main() {
 
                     propDef.domainIncludes = union(propDef.domainIncludes, entity["@type"].map((t) => {
                         const term = vocabCrate.resolveTerm(t) || `${ns}#${t}`
-                        if (term.startsWith("http://schema.org") && !vocabCrate.getEntity(term)) {
-                                    const newTerm = schemaOrgCrate.getEntity(term);
+                        //if (term.startsWith("http://schema.org") && !vocabCrate.getEntity(term)) {
+                        if (!vocabCrate.getEntity(term)) {
+                         if(term.match(/#Object/)) {
+                            console.log("OBJECT!!!")
+                         }
+                        const newTerm = schemaOrgCrate.getEntity(term);
                                     vocabCrate.addEntity(newTerm)
                                     addSuperclasses(newTerm)
                                 }
+
                         return {"@id" : term }
                     }))
                    
@@ -214,6 +236,7 @@ async function main() {
                                 const term = vocabCrate.resolveTerm(t) || `${ns}#${t}`;
                                 propTargets[resolvedTerm][term] = true;
                                 if (term.startsWith("http://schema.org") && !vocabCrate.getEntity(term)) {
+                                //if (!vocabCrate.getEntity(term)) {
                                     const newTerm = schemaOrgCrate.getEntity(term);
                                     vocabCrate.addEntity(newTerm)
                                     addSuperclasses(newTerm)
@@ -261,11 +284,14 @@ async function main() {
         }
 
     }
-    crate.addContext(extraContext);
+   
+    console.log(extraContext)
+    console.log("CONTEXT");
     vocabCrate.addContext(extraContext);
 
-    
-    console.log(extraContext)
+    crate.addContext(extraContext);
+
+
    
     if (argv.outputPath) {
         await ensureDir(argv.outputPath);

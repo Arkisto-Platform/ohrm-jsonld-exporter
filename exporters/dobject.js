@@ -34,15 +34,14 @@ export class DObject {
                 versions = versions.map((entity) => {
                     return { "@id": encodeURI(entity.dov) };
                 });
-                
+                // Changed this so that this is a container for the files, following the PCDM model
                 const dobject = {
                     "@id": `#${encodeURIComponent(row.doid)}`,
-                    "@type": ["File"],
+                    "@type": ["RepositoryObject"],
                     identifier: row.doid,
                     name: row.dotitle,
                     description: row.dodescription,
-                    encodingFormat:  row.dotype,
-                    versions,
+                    hasFile: versions,
                 };
                 if (row.arcid) dobject.linkedArchivalResource = { "@id": row.arcid };
                 if (row.pubid) dobject.linkedPublishedResource = { "@id": row.pubid };
