@@ -24,6 +24,7 @@ const { isArray, union, clone } = lodashPkg;
 import { ROCrate } from "ro-crate";
 import * as configuration from "./configuration.js";
 import yargs from "yargs/yargs";
+
 const argv = yargs(process.argv.slice(2))
     .scriptName("ohrm-jsonld-converter")
     .usage("Usage: $0 -o output path")
@@ -53,6 +54,7 @@ async function main() {
     function addSuperclasses(classs) {
         console.log(classs)
         const c = vocabCrate.getEntity(classs["@id"]);
+        c["rdfs:label"] = c["rdfs:label"][0].replace(/MediaObject/, "File")
         c.name = c["rdfs:label"];
         if (c["rdfs:subClassOf"] && isArray(c["rdfs:subClassOf"])) {
             c["rdfs:subClassOf"] = c["rdfs:subClassOf"].map((s) => {
@@ -88,6 +90,7 @@ async function main() {
 
     const crate = new ROCrate({ array: true, link: true });
     const vocabCrate = new ROCrate({ array: true, link: true });
+    //Hack -- need to sort out the additional RO-Crate vocab stuff
     vocabCrate.addContext({"RepositoryObject": "http://pcdm.org/2016/04/18/models#Object"})
     const schemaOrgCrate = new ROCrate({ array: true, link: true });
 
@@ -98,6 +101,7 @@ async function main() {
     if (extractVocab) {
         // Grab a  copy of this and put it in schema.json: https://schema.org/version/latest/schemaorg-current-http.jsonld
         const schemaJson = await fsExtraPkg.readJSON("schema.json");
+        // Build a crate from which we can pick Schema.org defintions to use in our schema
         for (let entity of schemaJson["@graph"]) {
             entity["@id"] = entity["@id"].replace(/^schema:/, "http://schema.org/")
             schemaOrgCrate.addEntity(clone(entity))
@@ -108,7 +112,8 @@ async function main() {
             try {
                 entity["@id"] = schemaOrgCrate.resolveTerm(entity["@id"]).replace("#object","#Object")
                 entity["@id"] = entity["@id"].replace("http://pcdm.org/models", "http://pcdm.org/2016/04/18/models")
-
+                // HACK HACK HACK HACK 
+                entity["rdfs:label"] = entity["rdfs:label"].replace(/^Object$/, "RepositoryObject")
                 vocabCrate.addEntity(clone(entity))
                 schemaOrgCrate.addEntity(clone(entity))
                   
@@ -188,11 +193,18 @@ async function main() {
             for (let p of Object.keys(entity)) {
                 // Is this prop known to our vocab crate?
                 var resolvedTerm = vocabCrate.resolveTerm(p);
-                if (!p.startsWith("@") && !resolvedTerm) {
+                
+                if (!p.startsWith("@") && (!resolvedTerm || !vocabCrate.getEntity(resolvedTerm)) ) {
                     // No - make one
-                    //console.log("Making a new prop", p)
+                    //console.log ("Making a new prop", p)
+                    var id;
+                    if (!resolvedTerm) {
+                        id = `${ns}#${p}`
+                    } else {
+                        id = resolvedTerm
+                    }
                     const newProp = {
-                        "@id": `${ns}#${p}`,
+                        "@id": id,
                         "@type": "rdf:Property",
                         "name": p,
                         "rdfs:label": p,
