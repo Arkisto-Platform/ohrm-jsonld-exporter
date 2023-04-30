@@ -303,7 +303,33 @@ async function main() {
 
     crate.addContext(extraContext);
 
+    // TODO -- put this in a crate utils function as it will be useful elsewhere 
+    // Putting both loops here so it is easier to extract
 
+    // Add links to titles 
+    const nameIndex = {}
+    for (let entity of crate.entities()) {
+        for (let n of entity.name || []) {
+            if (n) {
+                nameIndex[n] = entity;  
+            } 
+        }
+    }
+    
+    for (let entity of crate.entities()) {
+        for (let p of Object.keys(entity)) {
+            if (!p.startsWith("@") && !(p==="name")) {
+                if (entity[p]) {
+                    entity[p] = entity[p].map((v) => {
+                        if (nameIndex[v]) {
+                            console.log("LInkin'", v)
+                        }
+                        return nameIndex[v] || v;
+                    })
+            }
+            }
+        }
+    }
    
     if (argv.outputPath) {
         await ensureDir(argv.outputPath);
