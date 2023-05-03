@@ -43,7 +43,7 @@ export class Entity {
                     "x_efunction",
                 ];
 
-                let type = row.etype.split("-").map((v) => v.trim());
+                let type = row.etype.split("-").map((v) => v.trim().replace(" ", "_"));
 
                 let alsoKnownAs = await models.entityname.findAll({
                     where: { eid: row.eid },

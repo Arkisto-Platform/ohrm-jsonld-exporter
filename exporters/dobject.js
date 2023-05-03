@@ -34,7 +34,7 @@ export class DObject {
                 versions = versions.map((entity) => {
                     return { "@id": encodeURI(entity.dov) };
                 });
-                // Changed this so that this is a container for the files, following the PCDM model
+                // Changed this so that this is a container for the files not a File, following the PCDM model
                 const dobject = {
                     "@id": `#${encodeURIComponent(row.doid)}`,
                     "@type": ["RepositoryObject"],
@@ -43,8 +43,22 @@ export class DObject {
                     description: row.dodescription,
                     hasFile: versions,
                 };
-                if (row.arcid) dobject.linkedArchivalResource = { "@id": row.arcid };
-                if (row.pubid) dobject.linkedPublishedResource = { "@id": row.pubid };
+                if (row.arcid) {
+                    dobject.archivalResource = { "@id": `#${encodeURIComponent(row.arcid)}`};
+                }  
+
+
+                // row.arcid seems to be always missing -- trying a hac
+                // Remove linked from prop name as it is redundant
+                if (row.pubid) {
+                    dobject.publishedResource = { "@id": `#${encodeURIComponent(row.pubid)}`};
+                    //console.log("Found pubid", dobject)
+
+                } else {
+                    // HACK this works some of the time on DHRA -- TODO -- fix
+                    dobject.publishedResource = { "@id": dobject["@id"].replace(/D0/,"PR")};
+
+                }
                 mapEntityProperties(row, dobject, properties);
                 if (row.doprepared) {
                     rows.push({

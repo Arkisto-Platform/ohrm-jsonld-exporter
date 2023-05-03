@@ -52,7 +52,7 @@ main();
 async function main() {
 
     function addSuperclasses(classs) {
-        console.log(classs)
+        //console.log(classs)
         const c = vocabCrate.getEntity(classs["@id"]);
         c["rdfs:label"] = c["rdfs:label"][0].replace(/MediaObject/, "File")
         c.name = c["rdfs:label"];
@@ -230,9 +230,7 @@ async function main() {
                         const term = vocabCrate.resolveTerm(t) || `${ns}#${t}`
                         //if (term.startsWith("http://schema.org") && !vocabCrate.getEntity(term)) {
                         if (!vocabCrate.getEntity(term)) {
-                         if(term.match(/#Object/)) {
-                            console.log("OBJECT!!!")
-                         }
+                       
                         const newTerm = schemaOrgCrate.getEntity(term);
                                     vocabCrate.addEntity(newTerm)
                                     addSuperclasses(newTerm)
@@ -274,6 +272,9 @@ async function main() {
 
         if (entity["@type"].includes("Relationship")) {
             var relationshipName = "";
+            if (entity["@type"].length > 1) {
+                entity["@type"] = entity["@type"].filter(x => x != "Relationship");
+            }
             try {
                 let srcEntity = crate.getEntity(entity.source[0]["@id"]);
                 crate.addValues(srcEntity, "sourceOf", entity, false);
@@ -290,15 +291,12 @@ async function main() {
                 console.log(`Can't find target: ${entity.target[0]["@id"]}`);
             }
             entity.name = relationshipName;
-            if (entity["@type"].length > 1) {
-                entity["@type"] = entity["@type"].filter(x => x != "Relationship");
-            }
+
         }
 
     }
    
-    console.log(extraContext)
-    console.log("CONTEXT");
+  
     vocabCrate.addContext(extraContext);
 
     crate.addContext(extraContext);
@@ -315,14 +313,14 @@ async function main() {
             } 
         }
     }
-    
+
     for (let entity of crate.entities()) {
         for (let p of Object.keys(entity)) {
             if (!p.startsWith("@") && !(p==="name")) {
                 if (entity[p]) {
                     entity[p] = entity[p].map((v) => {
                         if (nameIndex[v]) {
-                            console.log("LInkin'", v)
+                            //console.log("LInkin'", v)
                         }
                         return nameIndex[v] || v;
                     })
@@ -338,7 +336,6 @@ async function main() {
         console.log(JSON.stringify(crate.toJSON(), null, 2));
     }
     if (extractVocab) {
-        console.log(propTargets);
         for (let p of Object.keys(propTargets)) {
             const propDef = vocabCrate.getEntity(p);
             propDef.rangeIncludes = Object.keys(propTargets[p]).map(
