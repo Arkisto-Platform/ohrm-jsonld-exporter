@@ -1,3 +1,7 @@
+# Development of this tools has move to https://github.com/describo/ohrm-jsonld-exporter
+
+
+
 # OHRM -> JSON-LD export tool
 
 -   [OHRM -\> JSON-LD export tool](#ohrm---json-ld-export-tool)
