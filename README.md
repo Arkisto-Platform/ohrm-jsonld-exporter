@@ -1,4 +1,4 @@
-# Development of this tools has move to https://github.com/describo/ohrm-jsonld-exporter
+# Development of this tool has moved to https://github.com/describo/ohrm-jsonld-exporter
 
 
 
